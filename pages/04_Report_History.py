@@ -4,6 +4,7 @@ import streamlit as st
 
 from components.authentication import require_login
 from components.ui_components import page_setup
+from components.report_preview import DOCX_MIME
 from services import report_service
 from services.dataset_service import ADMIN_ROLES
 
@@ -15,7 +16,7 @@ reports = report_service.list_reports(None if user["role"] in ADMIN_ROLES else u
 if not reports:
     st.info("No reports yet.")
 for r in reports:
-    c = st.columns([2, 3, 2, 1, 1, 1])
+    c = st.columns([2, 3, 2, 1, 1, 1, 1])
     c[0].write(r["report_no"])
     c[1].write(r["client"])
     c[2].write(f"{r['office']} · {r['created_at']:%d-%m-%Y}")
@@ -25,4 +26,8 @@ for r in reports:
         st.switch_page("pages/03_Create_Report.py")
     p = Path(r["pdf_path"]) if r["pdf_path"] else None
     if p and p.exists():
-        c[5].download_button("PDF", p.read_bytes(), file_name=p.name, key=f"dl_{r['id']}")
+        c[5].download_button("PDF", p.read_bytes(), file_name=p.name, mime="application/pdf", key=f"dl_{r['id']}")
+    docx = p.with_suffix('.docx') if p else None
+    if docx and docx.is_file():
+        c[6].download_button("DOCX", docx.read_bytes(), file_name=docx.name,
+                             mime=DOCX_MIME, key=f"docx_{r['id']}")

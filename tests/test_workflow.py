@@ -87,13 +87,18 @@ def test_full_office_workflow(isolated_reports, office, actor):
     assert app.session_state['draft']['values']['TDS']['1'] == '125'
     widget(app, 'button', '🔍 Preview Full Report').click()
     run_ui(app)
-    widget(app, 'button', '📄 Generate PDF').click()
+    widget(app, 'button', '📄 Generate PDF & DOCX').click()
     run_ui(app)
-    assert len(app.get('download_button')) == 1
+    assert len(app.get('download_button')) == 2
     run_ui(app, download=True)
-    assert len(app.get('download_button')) == 1
+    assert len(app.get('download_button')) == 2
     generated = Path(app.session_state['generated_report']['path'])
     assert generated.read_bytes().startswith(b'%PDF')
+    from docx import Document
+    word_path = Path(app.session_state['generated_report']['docx_path'])
+    assert word_path == generated.with_suffix('.docx')
+    document = Document(word_path)
+    assert any('Water sample was clear.' in p.text for p in document.paragraphs)
     report = report_service.get_report(app.session_state['draft']['report_id'])
     assert report['status'] == 'final'
     assert 'received_date' not in report['data']
@@ -116,7 +121,8 @@ def test_full_office_workflow(isolated_reports, office, actor):
     from report_engine.pdf_converter import render_pages
     assert app.session_state['preview_pages'] == render_pages(generated)
     app.switch_page('pages/04_Report_History.py').run()
-    assert not app.exception and app.get('download_button')
+    assert not app.exception
+    assert {w.label for w in app.get('download_button')} == {'PDF', 'DOCX'}
     widget(app, 'button', 'Open').click().run()
     assert not app.exception
     assert app.session_state['draft']['values']['pH']['1'] == '7.2'
