@@ -11,11 +11,21 @@ load_dotenv(BASE_DIR / ".env")
 
 from config.database_url import resolve_database_url
 
-DATABASE_URL, DATABASE_CONFIG_WARNING = resolve_database_url(os.getenv("DATABASE_URL"), BASE_DIR)
+def setting(name, default=""):
+    # Read Cloud Secrets before .env so deployment settings take effect at startup.
+    import streamlit as st
+    try:
+        value = st.secrets.get(name)
+    except FileNotFoundError:
+        value = None
+    return str(value) if value is not None else os.getenv(name, default)
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-AI_MODEL = os.getenv("AI_MODEL", "openai/gpt-oss-20b").strip() or "openai/gpt-oss-20b"
-LIBREOFFICE_PATH = os.getenv("LIBREOFFICE_PATH", "")
+
+DATABASE_URL, DATABASE_CONFIG_WARNING = resolve_database_url(setting("DATABASE_URL"), BASE_DIR)
+
+GROQ_API_KEY = setting("GROQ_API_KEY").strip()
+AI_MODEL = setting("AI_MODEL", "openai/gpt-oss-20b").strip() or "openai/gpt-oss-20b"
+LIBREOFFICE_PATH = setting("LIBREOFFICE_PATH")
 
 TEMPLATES_DIR = BASE_DIR / "templates"
 GENERATED_DIR = BASE_DIR / "storage" / "generated_reports"
