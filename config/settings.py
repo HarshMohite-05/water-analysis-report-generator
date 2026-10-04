@@ -9,10 +9,9 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///storage/app.db")
-if DATABASE_URL.startswith("sqlite:///") and not DATABASE_URL.startswith("sqlite:////"):
-    # make relative sqlite paths independent of the working directory
-    DATABASE_URL = "sqlite:///" + str(BASE_DIR / DATABASE_URL[len("sqlite:///"):])
+from config.database_url import resolve_database_url
+
+DATABASE_URL, DATABASE_CONFIG_WARNING = resolve_database_url(os.getenv("DATABASE_URL"), BASE_DIR)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 AI_MODEL = os.getenv("AI_MODEL", "openai/gpt-oss-20b").strip() or "openai/gpt-oss-20b"
