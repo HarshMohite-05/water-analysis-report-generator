@@ -9,6 +9,13 @@ from services import remark_ai_service
 
 def render(draft: dict) -> None:
     step_header(8, "Technician Remarks", "Write a rough note in your own words, then refine with AI.")
+    choice = st.radio(
+        "Include remarks?", ["Yes", "No"], horizontal=True,
+        key=field_key(draft, "include_remarks_choice", "Yes" if draft.get("include_remarks", True) else "No"),
+    )
+    draft["include_remarks"] = choice == "Yes"
+    if not draft["include_remarks"]:
+        return
     draft["remark_raw"] = st.text_area("Technician Remark (raw input)", key=field_key(draft, "remark_raw", draft.get("remark_raw", "")), height=80)
 
     st.markdown("**AI-refined remark**")

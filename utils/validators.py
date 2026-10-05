@@ -11,7 +11,7 @@ def validate_report_payload(data: Dict) -> List[str]:
     errors: List[str] = []
     if not data.get("office"):
         errors.append("Select an office.")
-    if not data.get("client_name"):
+    if not data.get("third_party_sample") and not data.get("client_name"):
         errors.append("Select a client.")
     cd, ad = data.get("collection_date"), data.get("analysis_date")
     if isinstance(cd, date) and isinstance(ad, date) and ad < cd:

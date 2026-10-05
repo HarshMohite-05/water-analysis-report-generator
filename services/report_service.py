@@ -34,6 +34,19 @@ def upsert_client(name: str, address: str, contact_person: str, *, user_id: int,
                              office=office, email=email, assigned_employee_id=assigned_employee_id))
 
 
+def normalize_report_payload(data: Dict) -> Dict:
+    """Exclude client identity and remarks when their report options are disabled."""
+    data = dict(data)
+    if data.get("third_party_sample"):
+        for field in ("client_name", "client_address", "contact_person", "client_email", "assigned_technician"):
+            data[field] = ""
+        data["assigned_employee_id"] = None
+    if not data.get("include_remarks", True):
+        for field in ("remark_raw", "remark_final", "remark_suggestion"):
+            data[field] = ""
+    return data
+
+
 # ---- payload <-> JSON ----------------------------------------------------
 def _ser(data: Dict) -> Dict:
     d = dict(data)
@@ -65,6 +78,7 @@ def save_report(data: Dict, user_id: int, report_id: Optional[int] = None,
     parameters[list of {name, unit, values{col: str}}], remark_raw, remark_final."""
     from services.template_service import office_key
 
+    data = normalize_report_payload(data)
     payload = _ser(data)
     with session_scope() as s:
         if report_id:
@@ -96,7 +110,7 @@ def list_reports(user_id: Optional[int] = None, limit: int = 200) -> List[dict]:
         q = s.query(Report)
         if user_id is not None:
             q = q.filter(Report.created_by == user_id)
-        return [dict(id=r.id, report_no=r.report_no, office=r.office, client=r.client_name,
+        return [dict(id=r.id, report_no=r.report_no, office=r.office, client="N/A — Third-Party Sample Testing" if r.data.get("third_party_sample") else r.client_name,
                      status=r.status, created_at=r.created_at, pdf_path=r.pdf_path)
                 for r in q.order_by(Report.id.desc()).limit(limit)]
 

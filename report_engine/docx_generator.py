@@ -88,10 +88,13 @@ def _info_table(doc, data: Dict) -> None:
     rows = [
         ("SAMPLE COLLECTION DATE", _fmt(data.get("collection_date"))),
         ("SAMPLE ANALYSIS DATE", _fmt(data.get("analysis_date"))),
-        ("CLIENT NAME", data.get("client_name", "")),
-        ("ADDRESS", data.get("client_address", "")),
-        ("CONTACT PERSON", data.get("contact_person", "")),
     ]
+    if not data.get("third_party_sample"):
+        rows.extend([
+            ("CLIENT NAME", data.get("client_name", "")),
+            ("ADDRESS", data.get("client_address", "")),
+            ("CONTACT PERSON", data.get("contact_person", "")),
+        ])
     # Label | ":" | value columns keep every colon vertically aligned.
     t = doc.add_table(rows=0, cols=3)
     t.autofit = False
@@ -173,7 +176,8 @@ def generate_docx(data: Dict, template_path: Path, seal_path: Path, out_path: Pa
     intro = doc.add_paragraph()
     client = data.get("client_name", "").strip() or "your organisation"
     intro.add_run(
-        f"Please find below the water analysis results for {client}. "
+        ("Please find below the water analysis results for the submitted third-party samples. "
+         if data.get("third_party_sample") else f"Please find below the water analysis results for {client}. ") +
         "The measured parameters for the submitted samples are presented for your review."
     ).font.size = Pt(CONTENT_PT)
     intro.paragraph_format.space_after = Pt(12)
@@ -199,23 +203,24 @@ def _keep(p) -> None:
 
 
 def _remarks_block(doc, data: Dict, seal_path: Path) -> None:
-    head = doc.add_paragraph()
-    head.paragraph_format.space_before = Pt(10)
-    _keep(head)
-    r = head.add_run("REMARKS")
-    r.bold, r.font.size = True, Pt(CONTENT_PT)
+    if data.get("include_remarks", True):
+        head = doc.add_paragraph()
+        head.paragraph_format.space_before = Pt(10)
+        _keep(head)
+        r = head.add_run("REMARKS")
+        r.bold, r.font.size = True, Pt(CONTENT_PT)
 
-    remark = data.get("remark_final") or data.get("remark_raw") or ""
-    # Each supplied line is a complete point; keep sentences and decimal values intact.
-    points = [re.sub(r"^\s*(?:[•*\-]\s*|\d+[.)]\s+)", "", line).strip()
-              for line in remark.splitlines() if line.strip()]
-    for point in filter(None, points):
-        body = doc.add_paragraph()
-        _keep(body)
-        body.paragraph_format.left_indent = Cm(0.45)
-        body.paragraph_format.first_line_indent = Cm(-0.35)
-        body.paragraph_format.space_after = Pt(4)
-        body.add_run("•  " + point).font.size = Pt(CONTENT_PT)
+        remark = data.get("remark_final") or data.get("remark_raw") or ""
+        # Each supplied line is a complete point; keep sentences and decimal values intact.
+        points = [re.sub(r"^\s*(?:[•*\-]\s*|\d+[.)]\s+)", "", line).strip()
+                  for line in remark.splitlines() if line.strip()]
+        for point in filter(None, points):
+            body = doc.add_paragraph()
+            _keep(body)
+            body.paragraph_format.left_indent = Cm(0.45)
+            body.paragraph_format.first_line_indent = Cm(-0.35)
+            body.paragraph_format.space_after = Pt(4)
+            body.add_run("•  " + point).font.size = Pt(CONTENT_PT)
 
     for_p = doc.add_paragraph()
     for_p.paragraph_format.space_before = Pt(10)

@@ -42,7 +42,8 @@ def render_preview(payload: dict) -> None:
 def render_generate(payload: dict, on_final) -> None:
     step_header(11, "Generate PDF and Word Report")
     if st.button("📄 Generate PDF & DOCX", type="primary"):
-        stem = f"{payload['client_name']}_{payload['office']}"
+        name = "Third_Party_Sample" if payload.get("third_party_sample") else payload["client_name"]
+        stem = f"{name}_{payload['office']}"
         docx_path = build_docx(payload, GENERATED_DIR, stem)
         generated = {"payload": deepcopy(payload), "docx_path": str(docx_path), "path": ""}
         st.session_state["generated_report"] = generated

@@ -137,3 +137,21 @@ def test_gap_below_title_matches_gap_above_sample_heading(tmp_path):
     rules = sorted(d['rect'].y0 for d in page.get_drawings()
                    if d['rect'].width > 300 and d['rect'].height < 3 and title.y1 < d['rect'].y0 < heading.y0)
     assert abs((rules[0] - title.y1) - (heading.y0 - rules[-1])) < 2  # points
+
+
+def test_no_remarks_omits_heading_and_text_but_keeps_signature(tmp_path):
+    import fitz
+    from report_engine.pdf_converter import docx_to_pdf
+    data = _payload(1)
+    data.update(include_remarks=False, remark_raw='Hidden raw remark', remark_final='Hidden final remark')
+    tpl, seal = template_paths(data['office'])
+    path = generate_docx(data, tpl, seal, tmp_path / 'no_remarks.docx')
+    doc = Document(path)
+    assert len(doc.inline_shapes) == 1
+    with fitz.open(docx_to_pdf(path, tmp_path)) as pdf:
+        pdf_text = '\n'.join(p.get_text() for p in pdf)
+    for text in ('\n'.join(p.text for p in doc.paragraphs), pdf_text):
+        assert 'REMARKS' not in text
+        assert 'Hidden raw remark' not in text
+        assert 'Hidden final remark' not in text
+        assert data['technician'] in text

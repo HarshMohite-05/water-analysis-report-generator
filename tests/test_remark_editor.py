@@ -24,3 +24,18 @@ st.button('Unrelated action')
     field('button', '✅ Accept').click().run()
     assert field('text_area', 'Final remark used in report').value == 'The container holding the water is damaged.'
     assert not app.exception
+
+
+def test_no_remarks_hides_editor_and_ai_controls():
+    app = AppTest.from_string('''
+import streamlit as st
+from components.remark_editor import render
+render(st.session_state.setdefault('draft', {'remark_raw': 'Existing note'}))
+''').run()
+    app.radio[0].set_value('No').run()
+    assert not app.exception
+    assert app.session_state['draft']['include_remarks'] is False
+    assert not app.text_area
+    assert not app.button
+    app.radio[0].set_value('Yes').run()
+    assert app.text_area[0].value == 'Existing note'

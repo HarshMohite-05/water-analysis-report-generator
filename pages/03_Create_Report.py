@@ -16,19 +16,19 @@ template_service.ensure_templates()
 
 def new_draft() -> dict:
     return dict(
-        report_id=None, office=user.get("default_office", "Mumbai Office"),
+        report_id=None, third_party_sample=False, office=user.get("default_office", "Mumbai Office"),
         collection_date=date.today(), analysis_date=date.today(),
         client_name="", client_address="", contact_person="", client_email="", assigned_technician="", assigned_employee_id=None, technician=user["full_name"],
         sample_cols=[{"id": 1, "name": "RO Feed Water"}, {"id": 2, "name": "RO 3rd Stage Reject Water"}],
         next_col_id=2, selected_params=list(DEFAULT_SELECTED), custom_params=[], units={}, values={},
-        remark_raw="", remark_suggestion="", remark_final="",
+        include_remarks=True, remark_raw="", remark_suggestion="", remark_final="",
     )
 
 
 def draft_from_report(rep: dict) -> dict:
     """Rebuild UI state from a saved payload."""
     d, data = new_draft(), rep["data"]
-    d.update(report_id=rep["id"], office=data["office"], collection_date=data["collection_date"],
+    d.update(include_remarks=data.get("include_remarks", True), third_party_sample=data.get("third_party_sample", False), report_id=rep["id"], office=data["office"], collection_date=data["collection_date"],
              analysis_date=data["analysis_date"], client_name=data["client_name"],
              client_address=data.get("client_address", ""), contact_person=data.get("contact_person", ""),
              client_email=data.get("client_email", ""), assigned_technician=data.get("assigned_technician", ""),
@@ -49,13 +49,13 @@ def build_payload(d: dict) -> dict:
     params = [dict(name=p, unit=d["units"].get(p, ""),
                    values={c["name"].strip(): d["values"].get(p, {}).get(str(c["id"]), "") for c in cols})
               for p in d["selected_params"]]
-    return dict(office=d["office"], client_name=d["client_name"], client_address=d["client_address"],
+    return report_service.normalize_report_payload(dict(third_party_sample=d.get("third_party_sample", False), office=d["office"], client_name=d["client_name"], client_address=d["client_address"],
                 contact_person=d["contact_person"], client_email=d.get("client_email", ""),
                 assigned_technician=d.get("assigned_technician", ""), assigned_employee_id=d.get("assigned_employee_id"),
                 generated_by_employee_id=user["employee_id"], collection_date=d["collection_date"],
                 analysis_date=d["analysis_date"], technician=d["technician"], technician_email=user["email"],
                 sample_columns=[c["name"].strip() for c in cols], parameters=params,
-                remark_raw=d["remark_raw"], remark_final=d["remark_final"] or d["remark_raw"])
+                include_remarks=d.get("include_remarks", True), remark_raw=d["remark_raw"], remark_final=d["remark_final"] or d["remark_raw"]))
 
 
 # load a report chosen on the history page, otherwise start (or keep) a draft
